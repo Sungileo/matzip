@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>맛집 지도</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+        }
+        #sidebar {
+            width: 300px;
+            height: 100vh;
+            overflow-y: auto;
+            background: #f8f9fa;
+            padding: 10px;
+        }
+        #map {
+            flex-grow: 1;
+            height: 100vh;
+        }
+        .restaurant {
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .restaurant-name {
+            font-weight: bold;
+        }
+        .restaurant-menu {
+            font-size: 0.9em;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar"></div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        const restaurants = [
+            {name: "그냥집밥", menu: "한식뷔페", lat: 35.14999, lon: 126.9202055},
+            {name: "대접", menu: "김밥, 떡볶이 없는 가성비 갑 분식집(치즈돈까스 맛집, 제육주먹밥)", lat: 35.149992, lon: 126.920133},
+            {name: "1515", menu: "승환쌤이 좋아했던 중국집..사장님 바뀜…", lat: 35.150089, lon: 126.920681},
+            {name: "행복한 담벼락(행담)", menu: "크림순대, 크림부대찌개, 웨이팅이 길다!", lat: 35.1495643, lon: 126.9205897},
+            {name: "여로", menu: "쌈밥집(고추장 베이스)", lat: 35.150308, lon: 126.91847},
+            {name: "참뫼", menu: "쌈밥집(찰밥나옴!)", lat: 35.1496543, lon: 126.9184485},
+            {name: "더솥", menu: "청국장+낚지볶음(조금 멀다!)", lat: 35.146246, lon: 126.917778},
+            {name: "해뜨는집", menu: "제육볶음, 김치찌개, 고등어구이 등", lat: 35.148512, lon: 126.919029},
+            {name: "포카포카", menu: "일본 가정식(가격이 조금 비쌈)", lat: 35.151631, lon: 126.92237},
+            {name: "황금성", menu: "새로 추천하는 중국집(삼선짬뽕이 👍)", lat: 35.1522388, lon: 126.9175692},
+            {name: "아라타", menu: "돈까스 맛집(가격대 1만3천원 이상ㅠㅠ)", lat: 35.151175, lon: 126.922348},
+            {name: "명덕식당", menu: "설렁탕 맛집", lat: 35.1496032, lon: 126.917623},
+            {name: "정희", menu: "퓨전한식 맛집(비싸고 맛있고 웨이팅 길다..)", lat: 35.150413, lon: 126.925488},
+            {name: "런오프타마고", menu: "일본식 덮밥(가격대 1만1천 이상ㅠ)", lat: 35.150692, lon: 126.921609},
+            {name: "소바쿄다이", menu: "수현쌤이 좋아하는 마제소바 맛집", lat: 35.1494987, lon: 126.9243886},
+            {name: "맛쌈", menu: "갈비찜 맛집(또간집에 나온 집!)", lat: 35.146165, lon: 126.915713},
+            {name: "오이시카레", menu: "카레 맛집(오믈렛 추가해서 먹기)", lat: 35.1470092, lon: 126.9179963},
+            {name: "시바카레", menu: "오픈 전에 가면 시바 있음! 카레집~!", lat: 35.1491561, lon: 126.9236373},
+            {name: "뜸", menu: "덮밥집(김치삼겹덮밥 추천! 양이 적지만 맛있고 멀다)", lat: 35.14927, lon: 126.927204},
+            {name: "보울레시피", menu: "샐러드 맛집(토마토 스프 맛있음!)", lat: 35.146962, lon: 126.916652},
+            {name: "파더스베이글", menu: "베이글 유명 맛집", lat: 35.149507, lon: 126.920734},
+            {name: "마시타", menu: "일식(라멘, 덮밥, 카레) 맛집 / 가라아게덮밥,,,걍그럼….(누가4점…?) / 카레 아니고 카레주스", lat: 35.150039, lon: 126.919969},
+            {name: "풍남옥", menu: "콩나물 국밥(밥, 콩나물 리필가능) / 김치찌게x 김치찌개o(신라면급/맛있게 매움)", lat: 35.148671, lon: 126.919603},
+            {name: "청춘뚝배기", menu: "뚝배기 찌개류, 뚝배기 비빔밥류, 삼겹살덮밥, 돼지고기덮밥, 돈가스덮밥 맛집", lat: 35.1489695, lon: 126.9192883},
+            {name: "대림국수", menu: "닭고기 덮밥(달짝지근 맛있음), 냉면(중면/육수 독특,,맛있음!), 물비빔면 엄청매움😥", lat: 35.149094, lon: 126.922247},
+            {name: "하동정", menu: "한식뷔페", lat: 35.1473625, lon: 126.9154729},
+            {name: "쿠로시로", menu: "국물이 시원한 라멘 맛집", lat: 35.1486764, lon: 126.9184614},
+            {name: "교동짬뽕", menu: "상당히 매움. 매운거 잘 드시는 분들에게는 추천! (진짜진짜 매웠는데 지금은 하나도 안매워짐)", lat: 35.1481695, lon: 126.9138907},
+            {name: "바오바오", menu: "부대찌개 + 돌솥밥. 거리 있음.", lat: 35.154699, lon: 126.911955},
+            {name: "신신식당", menu: "요일별 고정 메뉴가 있는 7000원 백반(목요일 수육 강추!!!)", lat: 35.1494771, lon: 126.9174774},
+            {name: "미미당", menu: "돈까스소바. 냉소바에 새우튀김추가 추천", lat: 35.1479121, lon: 126.9178603},
+            {name: "맛집한겨레", menu: "오리탕 반계탕 비빔밥이 맛있어요", lat: 35.1499602, lon: 126.9171869},
+            {name: "캐치스피자", menu: "꼭… 꼭 방문해서 먹어야하는 피자집 하프앤하프 불고기페퍼로니 최고", lat: 35.1498621, lon: 126.922243},
+            {name: "박순자녹두집", menu: "파전과 수제비 흐리거나 비오는날 먹으면 더 좋음", lat: 35.1518202, lon: 126.9164213},
+            {name: "청진동 해장국", menu: "머리고기 국밥이 정말 맛있고 모둠국밥도 최고", lat: 35.1519701, lon: 126.9154968},
+            {name: "남동식당", menu: "점심엔 육비나 부대찌개(최고) 저녁엔 오겹살과 육회냉면을 꼭 드세요", lat: 35.144201, lon: 126.9177568},
+            {name: "동국", menu: "사골국밥과 매콤국밥 짱 최고 고기가맛있고 국물이끝내줘요(거리조금있음)", lat: 35.1484367, lon: 126.9177341},
+            {name: "이츠모", menu: "갓구운 함박스테이크를 먹고싶을때 방문추천(조금멀고 오래걸림)", lat: 35.1519, lon: 126.924427},
+            {name: "천지라멘", menu: "돈코츠라멘 최고… 계란장덮밥과 가라아게 곁들이면 더 맛있음!!", lat: 35.1516716, lon: 126.9255423}
+        ];
+
+        const map = L.map('map').setView([35.14999, 126.9202055], 16);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Add current location marker
+        const currentLocation = L.marker([35.150507, 126.916120], {
+            icon: L.icon({
+                iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+                shadowSize: [41, 41]
+            })
+        }).bindPopup('<b>현위치</b>').addTo(map);
+
+        const sidebar = document.getElementById('sidebar');
+        const markers = [];
+
+        restaurants.forEach((restaurant, index) => {
+            const marker = L.circleMarker([restaurant.lat, restaurant.lon], {
+                radius: 8,
+                fillColor: "#ff0000",
+                color: "#000",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.8
+            }).bindPopup(`<b>${restaurant.name}</b><br>${restaurant.menu}`)
+              .addTo(map);
+
+            markers.push(marker);
+
+            const div = document.createElement('div');
+            div.className = 'restaurant';
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'restaurant-name';
+            nameDiv.innerText = restaurant.name;
+
+            const menuDiv = document.createElement('div');
+            menuDiv.className = 'restaurant-menu';
+            menuDiv.innerText = restaurant.menu;
+
+            div.appendChild(nameDiv);
+            div.appendChild(menuDiv);
+
+            div.addEventListener('click', () => {
+                map.setView([restaurant.lat, restaurant.lon], 16);
+                marker.openPopup();
+            });
+
+            sidebar.appendChild(div);
+        });
+    </script>
+</body>
+</html>
